@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電車時刻検索アプリ</title>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="#" onclick="showHome()">ホーム</a></li>
+            <li><a href="#" onclick="showSearch()">電車時刻検索</a></li>
+        </ul>
+    </nav>
+
+    <div id="home">
+        <h1>ようこそ！</h1>
+        <p>このサイトは、入力したバイトのシフトから行きと帰りの最適な電車時刻を検索するアプリケーションです。</p>
+        <p>平日・休日、夜勤にも対応しています。</p>
+        <p>自宅の最寄り駅は北習志野駅、バイト先の最寄り駅は新津田沼駅です。乗車時間を９分、新津田沼駅からバイト先までの徒歩時間を５分としています。</p>
+    </div>
+
+    <div id="search" style="display:none;">
+        <h1>電車時刻検索</h1>
+        <label for="date">日付:</label>
+        <input type="date" id="date" required><br>
+
+        <label for="startTime">シフト開始時間:</label>
+        <select id="startTime"></select><br>
+
+        <label for="endTime">シフト終了時間:</label>
+        <select id="endTime"></select><br>
+
+        <button onclick="searchTrainTimes()">時刻を検索</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // ナビゲーション機能
+        function showHome() {
+            document.getElementById('home').style.display = 'block';
+            document.getElementById('search').style.display = 'none';
+        }
+
+        function showSearch() {
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('search').style.display = 'block';
+        }
+
+        // 初期表示はホーム画面
+        showHome();
+
+        const weekdayScheduleNishifunabashiToShintsudanuma = {
+            "04": ["52"],
+            "05": ["13", "34", "51"],
+    "06": ["05", "16", "24", "29", "34", "39", "43", "47", "51", "55", "59"],
+    "07": ["04", "08", "13", "17", "22", "26", "31", "36", "40", "45", "49", "54", "59"],
+    "08": ["03", "07", "11", "15", "19", "24", "31", "40", "48", "55"],
+    "09": ["04", "14", "20", "27", "34", "40", "46", "54"],
+    "10": ["03", "13", "23", "33", "43", "53"],
+    "11": ["03", "13", "23", "33", "43", "53"],
+    "12": ["03", "13", "23", "33", "43", "53"],
+    "13": ["03", "13", "23", "33", "43", "53"],
+    "14": ["03", "13", "23", "33", "43", "53"],
+    "15": ["03", "13", "23", "33", "43", "53"],
+    "16": ["03", "13", "23", "33", "43", "53"],
+    "17": ["03", "13", "23", "33", "43", "53"],
+    "18": ["01", "08", "16", "24", "31", "39", "47", "55"],
+    "19": ["01", "09", "16", "24", "31", "39", "45", "53"],
+    "20": ["01", "09", "17", "25", "34", "42", "50", "58"],
+    "21": ["06", "19", "33", "47"],
+    "22": ["01", "16", "29", "42", "57"],
+    "23": ["10", "24", "37", "50"],
+            "00": ["16", "37"]
+        };
+
+
+        const weekendScheduleNishifunabashiToShintsudanuma = {
+            "04": ["52"],
+            "05": ["13", "34", "45", "56"],
+    "06": ["08", "22", "33", "46", "53"],
+    "07": ["00", "06", "12", "20", "27", "34", "43", "53"],
+    "08": ["02", "12", "22", "32", "42", "52"],
+    "09": ["02", "12", "22", "32", "42", "52"],
+    "10": ["03", "13", "23", "33", "43", "53"],
+    "11": ["03", "13", "23", "33", "43", "53"],
+    "12": ["03", "13", "23", "33", "43", "53"],
+    "13": ["03", "13", "23", "33", "43", "53"],
+    "14": ["03", "13", "23", "33", "43", "53"],
+    "15": ["03", "13", "23", "33", "43", "53"],
+    "16": ["03", "13", "23", "33", "43", "53"],
+    "17": ["03", "13", "23", "33", "43", "53"],
+    "18": ["03", "13", "24", "34", "45", "55"],
+    "19": ["05", "15", "25", "35", "46", "57"],
+    "20": ["08", "18", "30", "43", "56"],
+    "21": ["10", "23", "36", "48"],
+    "22": ["02", "15", "29", "42", "57"],
+    "23": ["10", "24", "37", "50"],
+            "00": ["16", "37"]
+        };
+
+        const weekdayScheduleShintsudanumaToNishifunabashi = {
+            "04": [],
+            "05": ["00", "19", "41", "59"],
+    "06": ["14", "24", "30", "37", "42", "48", "54", "59"],
+    "07": ["03", "07", "11", "15", "19", "24", "28", "33", "38", "43", "48", "53", "57"],
+    "08": ["02", "06", "11", "15", "19", "22", "27", "31", "35", "43", "50", "58"],
+    "09": ["07", "15", "25", "35", "44", "52"],
+    "10": ["02", "12", "22", "32", "42", "52"],
+    "11": ["02", "12", "22", "32", "42", "52"],
+    "12": ["02", "12", "22", "32", "42", "52"],
+    "13": ["02", "12", "22", "32", "42", "52"],
+    "14": ["02", "12", "22", "32", "42", "52"],
+    "15": ["02", "12", "22", "32", "42", "52"],
+    "16": ["02", "12", "22", "32", "42", "52", "55"],
+    "17": ["01", "09", "16", "24", "32", "40", "49", "59"],
+    "18": ["09", "17", "24", "33", "40", "48", "54"],
+    "19": ["02", "10", "18", "25", "33", "40", "48", "55"],
+    "20": ["02", "09", "16", "25", "33", "42", "50"],
+    "21": ["00", "09", "20", "31", "43", "55"],
+    "22": ["08", "22", "36", "50"],
+    "23": ["04", "18", "32", "43", "58"],
+            "00": ["15", "35"]
+        };
+
+        const weekendScheduleShintsudanumaToNishifunabashi = {
+            "04": [],
+    "05": ["00", "30", "46", "57"],
+    "06": ["14", "25", "35", "45", "55"],
+    "07": ["05", "15", "25", "35", "44", "52"],
+    "08": ["02", "12", "22", "32", "42", "52"],
+    "09": ["02", "12", "22", "32", "42", "52"],
+    "10": ["02", "12", "22", "32", "42", "52"],
+    "11": ["02", "12", "22", "32", "42", "52"],
+    "12": ["02", "12", "22", "32", "42", "52"],
+    "13": ["02", "12", "22", "32", "42", "52"],
+    "14": ["02", "12", "22", "32", "42", "52"],
+    "15": ["02", "12", "22", "32", "42", "52"],
+    "16": ["02", "12", "22", "32", "42", "52"],
+    "17": ["02", "12", "23", "34", "44", "54", "59"],
+    "18": ["04", "14", "19", "25", "33", "42", "52"],
+    "19": ["01", "11", "21", "31", "41", "52"],
+    "20": ["05", "17", "29", "41", "52"],
+    "21": ["04", "16", "28", "42", "55"],
+    "22": ["02", "15", "29", "50"],
+    "23": ["04", "18", "32", "43", "58"],
+            "00": ["15", "35"]
+        };
+
+        // 時刻選択肢の生成
+        const timeSelects = ["startTime", "endTime"];
+        for (let i = 5; i <= 33; i++) {
+            for (let j = 0; j < 60; j += 15) {
+                let hour = i ;
+                let time = `${String(hour).padStart(2, '0')}:${String(j).padStart(2, '0')}`;
+                timeSelects.forEach(selectId => {
+                    let option = document.createElement("option");
+                    option.value = `${i}:${String(j).padStart(2, '0')}`;
+                    option.text = time;
+                    document.getElementById(selectId).add(option);
+                });
+            }
+        }
+
+        function searchTrainTimes() {
+            let date = document.getElementById("date").value;
+            let startTime = document.getElementById("startTime").value;
+            let endTime = document.getElementById("endTime").value;
+
+            if (!date || !startTime || !endTime) {
+                alert("すべてのフィールドを入力してください。");
+                return;
+            }
+
+            let isWeekend = isWeekendDay(date);
+            let startTrainTime = calculateDepartureTimes(startTime, isWeekend, date);
+            let endTrainTime = calculateReturnTimes(endTime, isWeekend, date);
+
+            document.getElementById("results").innerHTML = `
+                <h2>検索結果</h2>
+                <p>行きの電車: ${startTrainTime}</p>
+                <p>帰りの電車: ${endTrainTime}</p>
+            `;
+        }
+
+        function isWeekendDay(dateString) {
+            let date = new Date(dateString);
+            let day = date.getDay();
+            return day === 0 || day === 6;
+        }
+
+        function calculateDepartureTimes(shiftStartTime, isWeekend, dateString) {
+            let timeParts = shiftStartTime.split(':');
+            let hour = parseInt(timeParts[0], 10);
+            let minute = parseInt(timeParts[1], 10);
+
+            let targetTime = new Date(dateString);
+            targetTime.setHours(hour % 24);
+            targetTime.setMinutes(minute);
+            targetTime.setSeconds(0);
+
+            targetTime.setMinutes(targetTime.getMinutes() - 14);
+
+            let targetHour = String(targetTime.getHours()).padStart(2, '0');
+            let targetMinute = String(targetTime.getMinutes()).padStart(2, '0');
+
+            let schedule = isWeekend ? weekendScheduleNishifunabashiToShintsudanuma : weekdayScheduleNishifunabashiToShintsudanuma;
+
+            while (true) {
+                let departures = schedule[targetHour];
+                if (departures) {
+                    for (let i = departures.length - 1; i >= 0; i--) {
+                        if (parseInt(departures[i], 10) <= parseInt(targetMinute, 10)) {
+                            return `${targetHour}:${departures[i]}`;
+                        }
+                    }
+                }
+                targetTime.setMinutes(targetTime.getMinutes() - 1);
+                targetHour = String(targetTime.getHours()).padStart(2, '0');
+                targetMinute = String(targetTime.getMinutes()).padStart(2, '0');
+
+                if (targetHour === "24" && targetMinute === "59") {
+                    let nextDay = new Date(targetTime);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    let nextDayIsWeekend = isWeekendDay(nextDay.toISOString().split('T')[0]);
+                    schedule = nextDayIsWeekend ? weekendScheduleShintsudanumaToNishifunabashi : weekdayScheduleShintsudanumaToNishifunabashi;
+                    targetHour = "25";
+                    targetMinute = "00";
+                }
+            }
+        }
+
+        function calculateReturnTimes(shiftEndTime, isWeekend, dateString) {
+            let timeParts = shiftEndTime.split(':');
+            let hour = parseInt(timeParts[0], 10);
+            let minute = parseInt(timeParts[1], 10);
+
+            let targetTime = new Date(dateString);
+            targetTime.setHours(hour % 24);
+            targetTime.setMinutes(minute);
+            targetTime.setSeconds(0);
+
+            targetTime.setMinutes(targetTime.getMinutes() + 5);
+
+            let targetHour = String(targetTime.getHours()).padStart(2, '0');
+            let targetMinute = String(targetTime.getMinutes()).padStart(2, '0');
+
+            let schedule = isWeekend ? weekendScheduleShintsudanumaToNishifunabashi : weekdayScheduleShintsudanumaToNishifunabashi;
+
+            while (true) {
+                let returns = schedule[targetHour];
+                if (returns) {
+                    for (let i = 0; i < returns.length; i++) {
+                        if (parseInt(returns[i], 10) >= parseInt(targetMinute, 10)) {
+                            return `${targetHour}:${returns[i]}`;
+                        }
+                    }
+                }
+                targetTime.setMinutes(targetTime.getMinutes() + 1);
+                targetHour = String(targetTime.getHours()).padStart(2, '0');
+                targetMinute = String(targetTime.getMinutes()).padStart(2, '0');
+
+                if (targetHour === "24" && targetMinute === "59") {
+                    let nextDay = new Date(targetTime);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    let nextDayIsWeekend = isWeekendDay(nextDay.toISOString().split('T')[0]);
+                    schedule = nextDayIsWeekend ? weekendScheduleNishifunabashiToShintsudanuma : weekdayScheduleNishifunabashiToShintsudanuma;
+                    targetHour = "25";
+                    targetMinute = "00";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
